@@ -48,16 +48,19 @@ pub fn config_to_rs(args: TokenStream, input: TokenStream) -> TokenStream {
 fn do_the_yaml(yaml_path: String, base_name: Ident) -> TokenStream {
     let file = std::fs::read_to_string(yaml_path).unwrap();
     let config = Yaml::load_from_str(&file).unwrap()[0].clone();
-    let (types, values) = make_config(&base_name.to_string(), config);
-    let res = quote! {
-        #types
-        #values
+    if let ConfigResult::Terminal { types, values } = make_config(&base_name.to_string(), config) {
+        let res = quote! {
+            #types
+            #values
 
-    };
-    res.into()
+        };
+        res.into()
+    } else {
+        panic!("Not supported yet")
+    }
 }
 
-fn make_config(key: &str, yaml: Yaml) -> (TokenStream2, TokenStream2) {
+fn make_config(key: &str, yaml: Yaml) -> ConfigResult {
     match yaml {
         Yaml::Hash(hash) => process_hashtable(key, hash),
         // Yaml::Array(array) => process_array(key, array),
@@ -85,7 +88,7 @@ enum ConfigResult {
     },
 }
 
-fn process_hashtable(key: &str, hash: LinkedHashMap<Yaml, Yaml>) -> (TokenStream2, TokenStream2) {
+fn process_hashtable(key: &str, hash: LinkedHashMap<Yaml, Yaml>) -> ConfigResult {
     let mut type_fields = syn::FieldsNamed {
         brace_token: token::Brace::default(),
         named: Default::default(),
@@ -100,21 +103,22 @@ fn process_hashtable(key: &str, hash: LinkedHashMap<Yaml, Yaml>) -> (TokenStream
             struct_fields.push(value);
         } else if let Yaml::Array(_) = value {
             println!("Array");
-            let x = make_config(entry_key, value);
-            println!("{}\n", x.0.to_string());
-            println!("{}", x.1.to_string());
-            syn::ExprArray::parse.parse2(x.1.clone()).unwrap();
-            println!("survived");
+            if let ConfigResult::Terminal { types, values } = make_config(entry_key, value) {
+                println!("{}\n", types);
+                println!("{}", values);
+                syn::ExprArray::parse.parse2(types).unwrap();
+                println!("survived");
 
-            type_fields
-                .named
-                .push(syn::Field::parse_named.parse2(x.0).unwrap());
-            struct_fields.push(syn::FieldValue {
-                attrs: Default::default(),
-                member: syn::Member::Named(format_ident!("{}", entry_key)),
-                colon_token: Some(token::Colon::default()),
-                expr: syn::Expr::parse.parse2(x.1).unwrap(),
-            });
+                type_fields
+                    .named
+                    .push(syn::Field::parse_named.parse2(values.clone()).unwrap());
+                struct_fields.push(syn::FieldValue {
+                    attrs: Default::default(),
+                    member: syn::Member::Named(format_ident!("{}", entry_key)),
+                    colon_token: Some(token::Colon::default()),
+                    expr: syn::Expr::parse.parse2(values).unwrap(),
+                });
+            }
         } else {
             println!("Recursive struct");
         }
@@ -127,7 +131,10 @@ fn process_hashtable(key: &str, hash: LinkedHashMap<Yaml, Yaml>) -> (TokenStream
             #struct_fields
         };
     };
-    (struct_type, struct_values)
+    ConfigResult::Terminal {
+        types: struct_type,
+        values: struct_values,
+    }
 }
 
 fn process_array(key: &str, array: Vec<Yaml>) -> (TokenStream2, TokenStream2) {
