@@ -1,0 +1,8 @@
+parsing: "working"
+age: 22
+enabled: true
+time: 22.34
+recurse:
+  thing: 1
+# array: ["a", "b", "c"]
+# empty_array: []

@@ -1,0 +1,17 @@
+on: push
+
+name: CI/CD
+jobs:
+  web-deploy:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install rust
+      run: rustup update stable && rustup default stable
+
+    - uses: Swatinem/rust-cache@v2.7.7
+
+    - name: Test
+      run: cargo test
