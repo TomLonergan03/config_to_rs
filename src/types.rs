@@ -100,14 +100,4 @@ impl Ast {
             panic!("Only hash tables have type names")
         }
     }
-
-    pub fn get_value(&self) -> TokenStream {
-        match self {
-            Ast::Int { value, .. } => quote! { #value },
-            Ast::Bool { value, .. } => quote! { #value },
-            Ast::String { value, .. } => quote! { #value },
-            Ast::Float { value, .. } => quote! { #value },
-            _ => panic!("Only terminal types have values"),
-        }
-    }
 }

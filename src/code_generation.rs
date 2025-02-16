@@ -35,6 +35,9 @@ fn recurse_types(ast: &Ast) -> Vec<ItemStruct> {
                     let field_type = format_ident! {"{}", type_name};
                     fields.push(parse_quote! { pub #field_name: #field_type });
                 } else {
+                    if child.get_key() == "type" {
+                        panic!("Cannot have a YAML field named 'type' as it is a reserved keyword in Rust");
+                    }
                     let field_name = format_ident! {"{}", child.get_key()};
                     let field_type = child.get_type().to_syn_type();
                     fields.push(parse_quote! { pub #field_name: #field_type });
