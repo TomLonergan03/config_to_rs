@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_quote, Expr, Field, FieldValue, ItemStruct};
 
-use crate::types::Ast;
+use crate::types::{Ast, Type};
 
 impl Ast {
     pub fn to_rust(&self) -> TokenStream {
@@ -23,14 +23,14 @@ fn create_types(ast: &Ast) -> TokenStream {
 
 fn recurse_types(ast: &Ast) -> Vec<ItemStruct> {
     match ast {
-        Ast::UntypedHashTable {
+        Ast::HashTable {
             type_name,
             children,
             ..
         } => {
             let mut fields: Vec<Field> = vec![];
             for child in children {
-                if let Ast::UntypedHashTable { key, type_name, .. } = child.as_ref() {
+                if let Ast::HashTable { key, type_name, .. } = child.as_ref() {
                     let field_name = format_ident! {"{}", key};
                     let field_type = format_ident! {"{}", type_name};
                     fields.push(parse_quote! { pub #field_name: #field_type });
@@ -44,14 +44,21 @@ fn recurse_types(ast: &Ast) -> Vec<ItemStruct> {
             let struct_type = parse_quote! { struct #type_name { #(#fields),* } };
             let mut types = vec![struct_type];
             for child in children {
-                if let Ast::UntypedHashTable { .. } = child.as_ref() {
+                if let Ast::HashTable { .. } = child.as_ref() {
                     types.append(&mut recurse_types(child));
+                } else if let Ast::Array {
+                    children,
+                    type_def: Type::Array(child_type, ..),
+                    ..
+                } = child.as_ref()
+                {
+                    if let Type::HashTable { .. } = child_type.as_ref() {
+                        types.append(&mut recurse_types(children[0].as_ref()));
+                    }
                 }
             }
             types
         }
-        Ast::TypedHashTable { .. } => todo!(),
-        Ast::Array { .. } => vec![],
         x => unreachable!("Should not have gotten here: {:#?}", x),
     }
 }
@@ -65,7 +72,7 @@ fn create_struct(ast: &Ast) -> TokenStream {
 
 fn recurse_struct(ast: &Ast) -> Expr {
     match ast {
-        Ast::UntypedHashTable { children, .. } => {
+        Ast::HashTable { children, .. } => {
             let mut fields: Vec<FieldValue> = vec![];
             for child in children {
                 let expr = recurse_struct(child);
@@ -75,7 +82,6 @@ fn recurse_struct(ast: &Ast) -> Expr {
             let struct_name = format_ident! {"{}", ast.get_type_name()};
             Expr::Struct(parse_quote! { #struct_name { #(#fields),* } })
         }
-        Ast::TypedHashTable { .. } => todo!(),
         Ast::Array { children, .. } => {
             let values = children.iter().map(|child| recurse_struct(child));
             Expr::Array(parse_quote! { [ #(#values),* ] })

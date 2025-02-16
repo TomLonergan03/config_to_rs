@@ -1,16 +1,18 @@
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::Type as SynType;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Empty,
     String,
     Real,
     Integer,
     Boolean,
-    UntypedHashTable,
-    HashTable(Box<Type>, Box<Type>),
+    HashTable {
+        name: String,
+        full_type: Vec<Box<(String, Type)>>,
+    },
     Array(Box<Type>, usize),
 }
 
@@ -26,7 +28,10 @@ impl Type {
                 let child = child.to_syn_type();
                 SynType::Verbatim(quote! { [#child; #size] })
             }
-            x => panic!("No direct rust type for {:#?}", x),
+            Type::HashTable { name, .. } => {
+                let name = format_ident!("{}", name);
+                SynType::Verbatim(quote! { #name })
+            }
         }
     }
 }
@@ -50,25 +55,17 @@ pub enum Ast {
         value: f64,
     },
     /**
-     * A hash table that is not in an array so may have an arbitrary type
+     * A hash table that is in an array so must have the same type as all other tables in that array
      */
-    UntypedHashTable {
+    HashTable {
         key: String,
         type_name: String,
-        children: Vec<Box<Ast>>,
-    },
-    /** A hash table that is in an array so must have the same type as all other tables in that
-     * array
-     */
-    TypedHashTable {
-        key: String,
-        type_name: String,
-        types: Type,
+        type_def: Type,
         children: Vec<Box<Ast>>,
     },
     Array {
         key: String,
-        types: Type,
+        type_def: Type,
         children: Vec<Box<Ast>>,
     },
 }
@@ -80,8 +77,7 @@ impl Ast {
             Ast::Bool { key, .. } => key.clone(),
             Ast::String { key, .. } => key.clone(),
             Ast::Float { key, .. } => key.clone(),
-            Ast::UntypedHashTable { key, .. } => key.clone(),
-            Ast::TypedHashTable { key: name, .. } => name.clone(),
+            Ast::HashTable { key, .. } => key.clone(),
             Ast::Array { key, .. } => key.clone(),
         }
     }
@@ -92,17 +88,16 @@ impl Ast {
             Ast::Bool { .. } => Type::Boolean,
             Ast::String { .. } => Type::String,
             Ast::Float { .. } => Type::Real,
-            Ast::UntypedHashTable { .. } => Type::UntypedHashTable,
-            Ast::TypedHashTable { types, .. } => types.clone(),
-            Ast::Array { types, .. } => types.clone(),
+            Ast::HashTable { type_def, .. } => type_def.clone(),
+            Ast::Array { type_def, .. } => type_def.clone(),
         }
     }
 
     pub fn get_type_name(&self) -> String {
-        match self {
-            Ast::UntypedHashTable { type_name, .. } => type_name.clone(),
-            Ast::TypedHashTable { type_name, .. } => type_name.clone(),
-            _ => panic!("Only hash tables have type names"),
+        if let Ast::HashTable { type_name, .. } = self {
+            type_name.clone()
+        } else {
+            panic!("Only hash tables have type names")
         }
     }
 
