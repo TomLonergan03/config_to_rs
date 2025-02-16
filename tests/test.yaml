@@ -4,5 +4,5 @@ enabled: true
 time: 22.34
 recurse:
   thing: 1
-# array: ["a", "b", "c"]
-# empty_array: []
+array: ["a", "b", "c"]
+empty_array: []

@@ -1,21 +1,12 @@
+mod parse;
 mod types;
-mod utils;
-mod values;
 
-use crate::types::parse_terminal_type;
-use crate::values::parse_terminal_value;
-use hashlink::LinkedHashMap;
+use parse::parse;
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote};
+use proc_macro2::Ident;
 use saphyr::Yaml;
 use std::process::Command;
-use syn::{
-    parse::{Parse, Parser},
-    parse_macro_input,
-    punctuated::Punctuated,
-    token, DeriveInput, Field, FieldValue, Ident,
-};
+use syn::{parse_macro_input, DeriveInput};
 
 #[proc_macro_attribute]
 pub fn config_to_rs(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -48,112 +39,7 @@ pub fn config_to_rs(args: TokenStream, input: TokenStream) -> TokenStream {
 fn do_the_yaml(yaml_path: String, base_name: Ident) -> TokenStream {
     let file = std::fs::read_to_string(yaml_path).unwrap();
     let config = Yaml::load_from_str(&file).unwrap()[0].clone();
-    if let ConfigResult::Terminal { types, values } = make_config(&base_name.to_string(), config) {
-        let res = quote! {
-            #types
-            #values
-
-        };
-        res.into()
-    } else {
-        panic!("Not supported yet")
-    }
-}
-
-fn make_config(key: &str, yaml: Yaml) -> ConfigResult {
-    match yaml {
-        Yaml::Hash(hash) => process_hashtable(key, hash),
-        // Yaml::Array(array) => process_array(key, array),
-        // Yaml::String(string) => {
-        //     let string = process_string(key.unwrap());
-        //     todo!()
-        // }
-        // Yaml::Real(f) => println!("{:?}", f),
-        // Yaml::Integer(i) => println!("{:?}", i),
-        // Yaml::Boolean(b) => println!("{:?}", b),
-        x => panic!("Yaml type not supported: {:?}", x),
-    }
-}
-
-enum ConfigResult {
-    SubConfig {
-        types: TokenStream2,
-        values: TokenStream2,
-        type_entry: Field,
-        value_entry: FieldValue,
-    },
-    Terminal {
-        types: TokenStream2,
-        values: TokenStream2,
-    },
-}
-
-fn process_hashtable(key: &str, hash: LinkedHashMap<Yaml, Yaml>) -> ConfigResult {
-    let mut type_fields = syn::FieldsNamed {
-        brace_token: token::Brace::default(),
-        named: Default::default(),
-    };
-    let mut struct_fields = Punctuated::<FieldValue, token::Comma>::new();
-    for (entry_key, value) in hash {
-        let entry_key = entry_key.as_str().unwrap();
-        if utils::is_terminal_type(&value) {
-            let entry_type = parse_terminal_type(entry_key, value.clone());
-            type_fields.named.push(entry_type);
-            let value = parse_terminal_value(entry_key, value);
-            struct_fields.push(value);
-        } else if let Yaml::Array(_) = value {
-            println!("Array");
-            if let ConfigResult::Terminal { types, values } = make_config(entry_key, value) {
-                println!("{}\n", types);
-                println!("{}", values);
-                syn::ExprArray::parse.parse2(types).unwrap();
-                println!("survived");
-
-                type_fields
-                    .named
-                    .push(syn::Field::parse_named.parse2(values.clone()).unwrap());
-                struct_fields.push(syn::FieldValue {
-                    attrs: Default::default(),
-                    member: syn::Member::Named(format_ident!("{}", entry_key)),
-                    colon_token: Some(token::Colon::default()),
-                    expr: syn::Expr::parse.parse2(values).unwrap(),
-                });
-            }
-        } else {
-            println!("Recursive struct");
-        }
-    }
-    let name = format_ident!("{}", key);
-    let struct_type = quote! { struct #name #type_fields };
-    let struct_values = quote! {
-        const CONFIG: #name = #name
-        {
-            #struct_fields
-        };
-    };
-    ConfigResult::Terminal {
-        types: struct_type,
-        values: struct_values,
-    }
-}
-
-fn process_array(key: &str, array: Vec<Yaml>) -> (TokenStream2, TokenStream2) {
-    if array.is_empty() {
-        return (quote! { const array: Vec<()> }, quote! { array: vec![] });
-    }
-    match array[0] {
-        Yaml::String(_) => {
-            let array = array.iter().map(|x| {
-                let x = x.as_str().unwrap();
-                quote! { #x }
-            });
-            let name = format_ident!("{}", key);
-            let len = array.len();
-            return (
-                quote! { #name: [&'static str; #len] },
-                quote! { #name: [#(#array),*] },
-            );
-        }
-        _ => panic!("Not supported yet"),
-    };
+    let parse_tree = parse(&base_name.to_string(), config);
+    println!("{:#?}", parse_tree);
+    todo!()
 }
