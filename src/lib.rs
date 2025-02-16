@@ -32,7 +32,7 @@ pub fn config_to_rs(args: TokenStream, input: TokenStream) -> TokenStream {
             .unwrap();
         ast
     } else {
-        panic!("`hyped_config` has to be used with structs")
+        panic!("`config_to_rs` must only be used on structs");
     }
 }
 

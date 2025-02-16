@@ -1,4 +1,3 @@
-use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Type as SynType;
 
@@ -11,7 +10,7 @@ pub enum Type {
     Boolean,
     HashTable {
         name: String,
-        full_type: Vec<Box<(String, Type)>>,
+        full_type: Vec<(String, Type)>,
     },
     Array(Box<Type>, usize),
 }
@@ -54,19 +53,16 @@ pub enum Ast {
         key: String,
         value: f64,
     },
-    /**
-     * A hash table that is in an array so must have the same type as all other tables in that array
-     */
     HashTable {
         key: String,
         type_name: String,
         type_def: Type,
-        children: Vec<Box<Ast>>,
+        children: Vec<Ast>,
     },
     Array {
         key: String,
         type_def: Type,
-        children: Vec<Box<Ast>>,
+        children: Vec<Ast>,
     },
 }
 

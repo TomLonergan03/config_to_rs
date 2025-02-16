@@ -31,9 +31,9 @@ fn parse_hashtable(path: &str, key: &str, hash: LinkedHashMap<Yaml, Yaml>, in_ar
         let value = parse(path, entry_key, value, in_array);
         let type_name = (path.to_string() + "_" + entry_key).to_case(Case::Pascal);
         let type_def = value.get_type();
-        fields.push(Box::new(value.clone()));
+        fields.push(value.clone());
         if in_array {
-            types.push(Box::new((type_name.to_string(), type_def)));
+            types.push((type_name.to_string(), type_def));
         }
     });
     Ast::HashTable {
@@ -59,7 +59,7 @@ fn parse_array(path: &str, key: &str, values: Vec<Yaml>) -> Ast {
         } else {
             inner_type = Some(value.get_type());
         }
-        fields.push(Box::new(value));
+        fields.push(value);
     });
 
     if fields.is_empty() {

@@ -30,7 +30,7 @@ fn recurse_types(ast: &Ast) -> Vec<ItemStruct> {
         } => {
             let mut fields: Vec<Field> = vec![];
             for child in children {
-                if let Ast::HashTable { key, type_name, .. } = child.as_ref() {
+                if let Ast::HashTable { key, type_name, .. } = child {
                     let field_name = format_ident! {"{}", key};
                     let field_type = format_ident! {"{}", type_name};
                     fields.push(parse_quote! { pub #field_name: #field_type });
@@ -47,16 +47,16 @@ fn recurse_types(ast: &Ast) -> Vec<ItemStruct> {
             let struct_type = parse_quote! { struct #type_name { #(#fields),* } };
             let mut types = vec![struct_type];
             for child in children {
-                if let Ast::HashTable { .. } = child.as_ref() {
+                if let Ast::HashTable { .. } = child {
                     types.append(&mut recurse_types(child));
                 } else if let Ast::Array {
                     children,
                     type_def: Type::Array(child_type, ..),
                     ..
-                } = child.as_ref()
+                } = child
                 {
                     if let Type::HashTable { .. } = child_type.as_ref() {
-                        types.append(&mut recurse_types(children[0].as_ref()));
+                        types.append(&mut recurse_types(&children[0]));
                     }
                 }
             }
@@ -86,7 +86,7 @@ fn recurse_struct(ast: &Ast) -> Expr {
             Expr::Struct(parse_quote! { #struct_name { #(#fields),* } })
         }
         Ast::Array { children, .. } => {
-            let values = children.iter().map(|child| recurse_struct(child));
+            let values = children.iter().map(recurse_struct);
             Expr::Array(parse_quote! { [ #(#values),* ] })
         }
         Ast::Int { value, .. } => Expr::Lit(parse_quote! { #value }),

@@ -15,3 +15,6 @@ jobs:
 
     - name: Test
       run: cargo test
+
+    - name: Lint
+      run: cargo clippy
