@@ -1,6 +1,6 @@
 use config_to_rs::config_to_rs;
 
-#[config_to_rs("tests/test.yaml")]
+#[config_to_rs(yaml, tests/test.yaml)]
 pub struct Config;
 
 #[test]
