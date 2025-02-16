@@ -1,3 +1,4 @@
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Type as SynType;
 
@@ -94,6 +95,24 @@ impl Ast {
             Ast::UntypedHashTable { .. } => Type::UntypedHashTable,
             Ast::TypedHashTable { types, .. } => types.clone(),
             Ast::Array { types, .. } => types.clone(),
+        }
+    }
+
+    pub fn get_type_name(&self) -> String {
+        match self {
+            Ast::UntypedHashTable { type_name, .. } => type_name.clone(),
+            Ast::TypedHashTable { type_name, .. } => type_name.clone(),
+            _ => panic!("Only hash tables have type names"),
+        }
+    }
+
+    pub fn get_value(&self) -> TokenStream {
+        match self {
+            Ast::Int { value, .. } => quote! { #value },
+            Ast::Bool { value, .. } => quote! { #value },
+            Ast::String { value, .. } => quote! { #value },
+            Ast::Float { value, .. } => quote! { #value },
+            _ => panic!("Only terminal types have values"),
         }
     }
 
