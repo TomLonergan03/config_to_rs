@@ -4,5 +4,17 @@ enabled: true
 time: 22.34
 recurse:
   thing: 1
+  recurse:
+    thing: 3
 array: ["a", "b", "c"]
 empty_array: []
+array_of_arrays:
+  - ["a", "b", "c"]
+  - ["d", "e", "f"]
+# array_of_objects:
+#   - name: "a"
+#     age: 1
+#   - name: "b"
+#     age: 2
+#   - name: "c"
+#     age: 3

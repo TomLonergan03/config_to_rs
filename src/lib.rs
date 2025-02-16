@@ -1,7 +1,7 @@
 mod parse;
 mod types;
 
-use parse::parse;
+use crate::parse::parse;
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use saphyr::Yaml;
@@ -39,7 +39,7 @@ pub fn config_to_rs(args: TokenStream, input: TokenStream) -> TokenStream {
 fn do_the_yaml(yaml_path: String, base_name: Ident) -> TokenStream {
     let file = std::fs::read_to_string(yaml_path).unwrap();
     let config = Yaml::load_from_str(&file).unwrap()[0].clone();
-    let parse_tree = parse(&base_name.to_string(), config);
+    let parse_tree = parse("", &base_name.to_string(), config, false);
     println!("{:#?}", parse_tree);
     todo!()
 }
