@@ -1,21 +1,10 @@
-use convert_case::{Case, Casing};
 use hashlink::LinkedHashMap;
 use saphyr::Yaml;
 
 use crate::types::{Ast, Type};
 
-impl Ast {
-    pub fn from_yaml(base_name: String, yaml: Yaml) -> Ast {
-        parse("", &base_name, yaml, false)
-    }
-}
-
-fn parse(path: &str, key: &str, yaml: Yaml, in_array: bool) -> Ast {
-    let path = if path.is_empty() {
-        key.to_string()
-    } else {
-        format!("{} {}", path, key).to_case(Case::Pascal)
-    };
+pub fn parse(path: &str, key: &str, yaml: Yaml, in_array: bool) -> Ast {
+    let path = format!("{}{}", path, capitalise_first(key));
     match yaml {
         Yaml::Hash(hash) => parse_hashtable(&path, key, hash, in_array),
         Yaml::Array(array) => parse_array(&path, key, array),
@@ -29,7 +18,7 @@ fn parse_hashtable(path: &str, key: &str, hash: LinkedHashMap<Yaml, Yaml>, in_ar
     for (entry_key, value) in hash {
         let entry_key = entry_key.as_str().unwrap();
         let value = parse(path, entry_key, value, in_array);
-        let type_name = (path.to_string() + "_" + entry_key).to_case(Case::Pascal);
+        let type_name = path.to_string() + entry_key;
         let type_def = value.get_type();
         if in_array {
             todo!("Hash tables in arrays are not supported yet");
@@ -59,13 +48,13 @@ fn parse_array(path: &str, key: &str, values: Vec<Yaml>) -> Ast {
     if fields.is_empty() {
         return Ast::Array {
             key: key.to_string(),
-            types: Type::Array(Box::new(Type::Empty), 0),
+            types: Type::Array(Box::new(Type::Empty)),
             children: vec![],
         };
     }
     Ast::Array {
         key: key.to_string(),
-        types: Type::Array(Box::new(fields[0].get_type()), fields.len()),
+        types: Type::Array(Box::new(fields[0].get_type())),
         children: fields,
     }
 }
