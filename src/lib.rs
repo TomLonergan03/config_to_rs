@@ -40,7 +40,6 @@ fn do_the_yaml(yaml_path: String, base_name: String) -> TokenStream {
     let file = std::fs::read_to_string(yaml_path).unwrap();
     let config = Yaml::load_from_str(&file).unwrap()[0].clone();
     let parse_tree = Ast::from_yaml(base_name, config);
-    println!("{:#?}", parse_tree);
     let token_stream = parse_tree.to_rust();
     token_stream.into()
 }

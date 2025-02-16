@@ -115,23 +115,4 @@ impl Ast {
             _ => panic!("Only terminal types have values"),
         }
     }
-
-    fn is_terminal(&self) -> bool {
-        match self {
-            Ast::Int { .. } => true,
-            Ast::Bool { .. } => true,
-            Ast::String { .. } => true,
-            Ast::Float { .. } => true,
-            Ast::Array { .. } => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_almost_terminal(&self) -> bool {
-        match self {
-            Ast::UntypedHashTable { children, .. } => children.iter().all(|x| x.is_terminal()),
-            Ast::TypedHashTable { children, .. } => children.iter().all(|x| x.is_terminal()),
-            _ => false,
-        }
-    }
 }

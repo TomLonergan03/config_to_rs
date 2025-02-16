@@ -1,7 +1,7 @@
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_quote, Field, FieldValue, ItemStruct};
+use syn::{parse_quote, Expr, Field, FieldValue, ItemStruct};
 
 use crate::types::Ast;
 
@@ -59,63 +59,30 @@ fn recurse_types(ast: &Ast) -> Vec<ItemStruct> {
 fn create_struct(ast: &Ast) -> TokenStream {
     let struct_name = format_ident! {"{}", ast.get_key().to_case(Case::Upper)};
     let typename = format_ident! {"{}", ast.get_type_name()};
-    let fields = recurse_struct(ast);
-    quote! {
-        pub const #struct_name: #typename = #typename {
-            #(#fields),*
-        };
-    }
+    let expr = recurse_struct(ast);
+    quote! { pub const #struct_name: #typename =  #expr ;}
 }
 
-fn recurse_struct(ast: &Ast) -> Vec<FieldValue> {
+fn recurse_struct(ast: &Ast) -> Expr {
     match ast {
         Ast::UntypedHashTable { children, .. } => {
             let mut fields: Vec<FieldValue> = vec![];
             for child in children {
-                match child.as_ref() {
-                    Ast::UntypedHashTable { .. } => todo!(),
-                    Ast::TypedHashTable { .. } => todo!(),
-                    Ast::Array { children, .. } => {
-                        let field_name = format_ident! {"{}", child.get_key()};
-                        let values = children.iter().map(|child| child.get_value());
-                        fields.push(parse_quote! { #field_name: [ #(#values),* ] });
-                    }
-                    _ => {
-                        let field_name = format_ident! {"{}", child.get_key()};
-                        let field_value = child.get_value();
-                        fields.push(parse_quote! { #field_name: #field_value });
-                    }
-                }
+                let expr = recurse_struct(child);
+                let field_name = format_ident! {"{}", child.get_key()};
+                fields.push(parse_quote! { #field_name: #expr });
             }
-            fields
+            let struct_name = format_ident! {"{}", ast.get_type_name()};
+            Expr::Struct(parse_quote! { #struct_name { #(#fields),* } })
         }
         Ast::TypedHashTable { .. } => todo!(),
-        Ast::Array { .. } => vec![],
-        x => unreachable!("Should not have gotten here: {:#?}", x),
+        Ast::Array { children, .. } => {
+            let values = children.iter().map(|child| recurse_struct(child));
+            Expr::Array(parse_quote! { [ #(#values),* ] })
+        }
+        Ast::Int { value, .. } => Expr::Lit(parse_quote! { #value }),
+        Ast::Bool { value, .. } => Expr::Lit(parse_quote! { #value }),
+        Ast::String { value, .. } => Expr::Lit(parse_quote! { #value }),
+        Ast::Float { value, .. } => Expr::Lit(parse_quote! { #value }),
     }
 }
-
-// struct Config {
-//     pub age: i64,
-//     pub parsing: &'static str,
-//     pub enabled: bool,
-//     pub time: f64,
-//     pub recurse: ConfigRecurse,
-// }
-// struct ConfigRecurse {
-//     pub thing: i64,
-//     pub recurse: ConfigRecurseRecurse,
-// }
-// struct ConfigRecurseRecurse {
-//     pub thing: i64,
-// }
-// pub const CONFIG: Config = Config {
-//     age: 0,
-//     parsing: "",
-//     enabled: false,
-//     time: 0.0,
-//     recurse: ConfigRecurse {
-//         thing: 0,
-//         recurse: ConfigRecurseRecurse { thing: 0 },
-//     },
-// };
