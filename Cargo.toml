@@ -1,5 +1,9 @@
 [package]
 name = "config_to_rs"
+description = "Convert config files to Rust code"
+license = "MIT"
+license-file = "LICENSE"
+repository = "https://github.com/TomLonergan03/config_to_rs"
 version = "0.1.0"
 edition = "2021"
 
