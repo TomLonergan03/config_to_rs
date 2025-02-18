@@ -1,9 +1,14 @@
+#![cfg_attr(feature = "relative-to-macro", feature(proc_macro_span))]
 mod code_generation;
 mod parse;
 mod types;
 
+#[cfg(feature = "relative-to-macro")]
+use proc_macro::Span;
 use proc_macro::TokenStream;
 use saphyr::Yaml;
+#[cfg(feature = "relative-to-macro")]
+use std::path::Path;
 use std::process::Command;
 use syn::{parse_macro_input, DeriveInput};
 use types::Ast;
@@ -13,7 +18,10 @@ use types::Ast;
 ///
 /// # Arguments
 /// - `file_type`: The type of the config file (currently only supports `yaml`)
-/// - `config_path`: The path to the config file
+/// - `config_path`: The path to the config file **relative to the base cargo
+///   directory**, or if left blank will use the `CONFIG_PATH` environment variable.
+///   If you have the "relative-to-macro" feature enabled, the path is relative to
+///   the file that the macro is called in.
 ///
 /// # Example
 /// ```rust
@@ -55,14 +63,38 @@ pub fn config_to_rs(args: TokenStream, input: TokenStream) -> TokenStream {
         .split(",")
         .map(|x| x.to_string())
         .collect::<Vec<String>>();
-    if args.len() != 2 {
-        panic!("`config_to_rs` must have exactly two arguments");
+    if args.is_empty() {
+        panic!("`config_to_rs` must have arguments in the form `config_to_rs(file_type)` or `config_to_rs(file_type, config_path)`");
     }
     let file_type = args[0].replace("\"", "").replace(" ", "");
     if file_type != "yaml" {
         panic!("`config_to_rs` currently only supports yaml files");
     }
-    let config_path = args[1].replace("\"", "").replace(" ", "");
+    let config_path;
+    #[cfg(feature = "relative-to-macro")]
+    {
+        config_path = if args.len() == 1 {
+            std::env::var("CONFIG_PATH").unwrap()
+        } else {
+            let span = Span::call_site();
+            let source = span.source_file();
+            let mut mut_config_path = source.path();
+            mut_config_path.pop();
+            mut_config_path.push(args[1].replace("\"", "").replace(" ", ""));
+            mut_config_path.as_os_str().to_str().unwrap().to_string()
+        };
+    }
+    #[cfg(not(feature = "relative-to-macro"))]
+    {
+        config_path = if args.len() == 1 {
+            std::env::var("CONFIG_PATH").unwrap()
+        } else {
+            args[1].replace("\"", "").replace(" ", "")
+        };
+    }
+
+    println!("config_path: {:?}", config_path);
+
     let debug = std::env::var("DEBUG").is_ok();
 
     if let syn::Data::Struct(_) = &mut ast.data {

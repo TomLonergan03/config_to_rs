@@ -9,6 +9,9 @@ edition = "2021"
 [lib]
 proc-macro = true
 
+[features]
+relative-to-macro = []
+
 [dependencies]
 syn = { version = "2", features = ["full"] }
 quote = "1"

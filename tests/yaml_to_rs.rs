@@ -1,6 +1,11 @@
 use config_to_rs::config_to_rs;
 
-#[config_to_rs(yaml, tests/test.yaml)]
+#[cfg(feature = "unstable")]
+#[config_to_rs(yaml, test.yaml)]
+pub struct Config;
+
+#[cfg(not(feature = "unstable"))]
+#[config_to_rs(yaml)]
 pub struct Config;
 
 #[test]
