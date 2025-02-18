@@ -1,12 +1,12 @@
 For converting config files to Rust structs, so they can be compiled in to a binary.
-Allows for using config files in no-std no-alloc environments. 
+Allows for using config files in no-std no-alloc environments.
 
 Work in progress.
 
 Initially supports YAML.
 
 ## Feature flags
-- "relative-to-macro": **requires nightly**, allows for paths relative to the macro 
+- "relative-to-macro": **requires nightly**, allows for paths relative to the macro
   invocation to be used in the `config_to_rs` attribute instead of paths relative to
   the crate root. This is useful if you have a complex project structure where you
   have multiple local crates in a single cargo project.
