@@ -128,9 +128,11 @@ pub fn config_to_rs(args: TokenStream, input: TokenStream) -> TokenStream {
         };
     }
 
-    println!("{}", config_path);
-
     let debug = std::env::var("DEBUG").is_ok();
+
+    if debug {
+        println!("{}", config_path);
+    }
 
     if let syn::Data::Struct(_) = &mut ast.data {
         let struct_name = ast.ident.to_string();
