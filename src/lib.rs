@@ -93,8 +93,6 @@ pub fn config_to_rs(args: TokenStream, input: TokenStream) -> TokenStream {
         };
     }
 
-    println!("config_path: {:?}", config_path);
-
     let debug = std::env::var("DEBUG").is_ok();
 
     if let syn::Data::Struct(_) = &mut ast.data {
