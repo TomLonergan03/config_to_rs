@@ -7,8 +7,6 @@ mod types;
 use proc_macro::Span;
 use proc_macro::TokenStream;
 use saphyr::Yaml;
-#[cfg(feature = "relative-to-macro")]
-use std::path::Path;
 use std::process::Command;
 use syn::{parse_macro_input, DeriveInput};
 use types::Ast;
@@ -24,37 +22,74 @@ use types::Ast;
 ///   the file that the macro is called in.
 ///
 /// # Example
-/// ```rust
-/// use config_to_rs::config_to_rs;
-///
-/// // tests/test.yaml
-/// // parsing: working
-/// // age: 22
-/// // enabled:
-/// // array_of_arrays:
-/// //   - ["a", "b", "c"]
-/// //   - ["d", "e", "f"]
-/// // array_of_objects:
-/// //   - name: "a"
-/// //     age: 1
-/// //   - name: "b"
-/// //     age: 2
-/// //   - name: "c"
-/// //     age: 3
-///
-/// #[config_to_rs(yaml, tests/test.yaml)]    
-/// pub struct Config;
-///
-/// assert_eq!(CONFIG.parsing, "working");
-/// assert_eq!(CONFIG.age, 22i64);
-/// assert_eq!(CONFIG.enabled, true);
-/// assert_eq!(CONFIG.array_of_arrays, [["a", "b", "c"], ["d", "e", "f"]]);
-/// for (i, obj) in CONFIG.array_of_objects.iter().enumerate() {
-///     assert_eq!(obj.name, ['a', 'b', 'c'][i].to_string());
-///     assert_eq!(obj.age, (i + 1) as i64);
-/// }
-/// ````
-///
+#[cfg_attr(
+    feature = "relative-to-macro",
+    doc = r##"
+```rust
+use config_to_rs::config_to_rs;
+
+// tests/test.yaml
+// parsing: working
+// age: 22
+// enabled:
+// array_of_arrays:
+//   - ["a", "b", "c"]
+//   - ["d", "e", "f"]
+// array_of_objects:
+//   - name: "a"
+//     age: 1
+//   - name: "b"
+//     age: 2
+//   - name: "c"
+//     age: 3
+
+#[config_to_rs(yaml, ../test.yaml)]
+pub struct Config;
+
+assert_eq!(CONFIG.parsing, "working");
+assert_eq!(CONFIG.age, 22i64);
+assert_eq!(CONFIG.enabled, true);
+assert_eq!(CONFIG.array_of_arrays, [["a", "b", "c"], ["d", "e", "f"]]);
+for (i, obj) in CONFIG.array_of_objects.iter().enumerate() {
+    assert_eq!(obj.name, ['a', 'b', 'c'][i].to_string());
+    assert_eq!(obj.age, (i + 1) as i64);
+}
+```"##
+)]
+#[cfg_attr(
+    not(feature = "relative-to-macro"),
+    doc = r##"
+```rust
+use config_to_rs::config_to_rs;
+
+// tests/test.yaml
+// parsing: working
+// age: 22
+// enabled:
+// array_of_arrays:
+//   - ["a", "b", "c"]
+//   - ["d", "e", "f"]
+// array_of_objects:
+//   - name: "a"
+//     age: 1
+//   - name: "b"
+//     age: 2
+//   - name: "c"
+//     age: 3
+
+#[config_to_rs(yaml, test.yaml)]    
+pub struct Config;
+
+assert_eq!(CONFIG.parsing, "working");
+assert_eq!(CONFIG.age, 22i64);
+assert_eq!(CONFIG.enabled, true);
+assert_eq!(CONFIG.array_of_arrays, [["a", "b", "c"], ["d", "e", "f"]]);
+for (i, obj) in CONFIG.array_of_objects.iter().enumerate() {
+    assert_eq!(obj.name, ['a', 'b', 'c'][i].to_string());
+    assert_eq!(obj.age, (i + 1) as i64);
+}
+```"##
+)]
 pub fn config_to_rs(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut ast: DeriveInput = parse_macro_input!(input as DeriveInput);
 
@@ -92,6 +127,8 @@ pub fn config_to_rs(args: TokenStream, input: TokenStream) -> TokenStream {
             args[1].replace("\"", "").replace(" ", "")
         };
     }
+
+    println!("{}", config_path);
 
     let debug = std::env::var("DEBUG").is_ok();
 

@@ -2,7 +2,7 @@ on: push
 
 name: CI/CD
 jobs:
-  web-deploy:
+  Build without relative-to-macro:
     name: Test
     runs-on: ubuntu-latest
     strategy:
@@ -24,3 +24,20 @@ jobs:
 
     - name: Lint
       run: cargo clippy
+
+  Build with relative-to-macro:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install rust
+      run: rustup update nightly && rustup default nightly && rustup component add clippy
+
+    - uses: Swatinem/rust-cache@v2.7.7
+
+    - name: Test
+      run: cargo test --features relative-to-macro
+
+    - name: Lint
+      run: cargo clippy --features relative-to-macro
