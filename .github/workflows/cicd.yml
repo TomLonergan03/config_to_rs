@@ -41,3 +41,21 @@ jobs:
 
     - name: Lint
       run: cargo clippy --features relative-to-macro
+  Require_version_bump:
+    name: Require version bump for PRs
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/master'
+    steps:
+    - uses: actions/checkout@v4
+    - run: |
+        BRANCH_VER=$(cargo metadata --format-version 1 | python -m json.tool | grep \"root\" | awk -F# '{print $2}' | sed 's/"//g')
+        PUBLISHED_VER=$(cargo search config_to_rs | grep config_to_rs | awk '{print $3}' | sed 's/"//g')
+        echo "Branch version: $BRANCH_VER"
+        echo "Published version: $PUBLISHED_VER"
+        NEWER=$(sort -V -r <(echo $BRANCH_VER) <(echo $PUBLISHED_VER) | head -n 1)
+        if [ "$PUBLISHED_VER" == "$NEWER" ]; then
+          echo "Version bump required"
+          exit 1
+        else
+          exit 0
+        fi
