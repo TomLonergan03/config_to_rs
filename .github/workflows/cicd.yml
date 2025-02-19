@@ -44,7 +44,7 @@ jobs:
   Require_version_bump:
     name: Require version bump for PRs
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.ref != 'refs/heads/master'
     steps:
     - uses: actions/checkout@v4
     - run: |
