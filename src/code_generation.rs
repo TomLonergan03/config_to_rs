@@ -44,7 +44,7 @@ fn recurse_types(ast: &Ast) -> Vec<ItemStruct> {
                 }
             }
             let type_name = format_ident! {"{}", type_name};
-            let struct_type = parse_quote! { struct #type_name { #(#fields),* } };
+            let struct_type = parse_quote! { pub struct #type_name { #(#fields),* } };
             let mut types = vec![struct_type];
             for child in children {
                 if let Ast::HashTable { .. } = child {
