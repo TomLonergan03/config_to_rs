@@ -67,7 +67,7 @@ fn recurse_types(ast: &Ast) -> Vec<ItemStruct> {
 }
 
 fn create_struct(ast: &Ast) -> TokenStream {
-    let struct_name = format_ident! {"{}", ast.get_key().to_case(Case::Upper)};
+    let struct_name = format_ident! {"{}", ast.get_key().to_case(Case::Constant)};
     let typename = format_ident! {"{}", ast.get_type_name()};
     let expr = recurse_struct(ast);
     quote! { pub const #struct_name: #typename =  #expr ;}
