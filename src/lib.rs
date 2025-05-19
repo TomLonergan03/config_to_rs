@@ -5,6 +5,9 @@ mod types;
 
 #[cfg(feature = "relative-to-macro")]
 use proc_macro::Span;
+#[cfg(feature = "relative-to-macro")]
+use std::path::PathBuf;
+
 use proc_macro::TokenStream;
 use saphyr::Yaml;
 use std::process::Command;
@@ -112,8 +115,7 @@ pub fn config_to_rs(args: TokenStream, input: TokenStream) -> TokenStream {
             std::env::var("CONFIG_PATH").unwrap()
         } else {
             let span = Span::call_site();
-            let source = span.source_file();
-            let mut mut_config_path = source.path();
+            let mut mut_config_path = PathBuf::from(span.file());
             mut_config_path.pop();
             mut_config_path.push(args[1].replace("\"", "").replace(" ", ""));
             mut_config_path.as_os_str().to_str().unwrap().to_string()
